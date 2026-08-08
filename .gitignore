@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Build helper (not needed in the repo)
+build_notebook.py
