@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telecom Customer Churn Dashboard</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --card:#ffffff; --ink:#1c2733; --muted:#5f6f7e;
+    --line:#e2e8f0; --accent:#1f3d5c; --teal:#2a9d8f; --red:#e76f51;
+    --amber:#e9c46a; --shadow:0 1px 3px rgba(16,32,48,.08),0 8px 24px rgba(16,32,48,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0f151b; --card:#161f28; --ink:#e8eef4; --muted:#93a4b3;
+           --line:#26333f; --accent:#7fb3d5; --shadow:0 1px 3px rgba(0,0,0,.4); }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 64px}
+  header{margin-bottom:28px}
+  h1{font-size:clamp(1.5rem,3.5vw,2.1rem);margin:0 0 6px;letter-spacing:-.02em}
+  .sub{color:var(--muted);margin:0;font-size:.98rem}
+  .tag{display:inline-block;background:var(--accent);color:#fff;font-size:.7rem;
+       letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:99px;margin-bottom:10px;font-weight:600}
+  @media (prefers-color-scheme:dark){.tag{color:#0f151b}}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:30px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .kpi .v{font-size:1.75rem;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+  .kpi .l{color:var(--muted);font-size:.82rem;margin-top:2px}
+  .kpi.red .v{color:var(--red)} .kpi.teal .v{color:var(--teal)}
+
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;
+          padding:22px 24px;margin-bottom:22px;box-shadow:var(--shadow)}
+  h2{font-size:1.12rem;margin:0 0 4px;letter-spacing:-.01em}
+  .hint{color:var(--muted);font-size:.88rem;margin:0 0 18px}
+
+  .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:26px}
+  .chart h3{font-size:.9rem;font-weight:600;margin:0 0 10px;color:var(--muted)}
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:.86rem}
+  .bar-row .nm{width:104px;flex:none;color:var(--muted)}
+  .bar-track{flex:1;background:var(--line);border-radius:5px;height:22px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:5px;transition:width .45s cubic-bezier(.22,.9,.3,1)}
+  .bar-row .pv{width:44px;flex:none;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+
+  .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
+  label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:5px;font-weight:600;
+        letter-spacing:.03em;text-transform:uppercase}
+  select,input[type=number],input[type=text]{width:100%;padding:9px 11px;border:1px solid var(--line);
+        border-radius:8px;background:var(--bg);color:var(--ink);font-size:.92rem;font-family:inherit}
+  input[type=range]{width:100%;accent-color:var(--teal)}
+  .result{display:flex;flex-wrap:wrap;gap:26px;align-items:baseline;padding:16px 18px;
+          background:var(--bg);border-radius:10px;border:1px solid var(--line)}
+  .result .big{font-size:2rem;font-weight:700;line-height:1}
+  .result .lbl{color:var(--muted);font-size:.82rem}
+
+  button{background:var(--accent);color:#fff;border:0;padding:10px 18px;border-radius:8px;
+         font-size:.9rem;font-weight:600;cursor:pointer;font-family:inherit}
+  @media (prefers-color-scheme:dark){button{color:#0f151b}}
+  button:hover{opacity:.9}
+  button.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+
+  .gauge{height:30px;background:var(--line);border-radius:8px;overflow:hidden;margin:14px 0 8px;position:relative}
+  .gauge-fill{height:100%;transition:width .5s cubic-bezier(.22,.9,.3,1);border-radius:8px}
+  .risk-note{font-size:.9rem;color:var(--muted)}
+
+  table{width:100%;border-collapse:collapse;font-size:.87rem;margin-top:14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:.76rem;text-transform:uppercase;letter-spacing:.04em}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .scroll{overflow-x:auto}
+  .pill{padding:2px 8px;border-radius:99px;font-size:.75rem;font-weight:700}
+  .pill.hi{background:rgba(231,111,81,.15);color:var(--red)}
+  .pill.md{background:rgba(233,196,106,.2);color:#b5892a}
+  .pill.lo{background:rgba(42,157,143,.15);color:var(--teal)}
+
+  .insights{margin:0;padding-left:20px}
+  .insights li{margin-bottom:9px}
+  .insights b{color:var(--ink)}
+  footer{color:var(--muted);font-size:.83rem;text-align:center;margin-top:34px}
+  a{color:var(--accent)}
+  .note{background:var(--bg);border-left:3px solid var(--amber);padding:11px 14px;
+        border-radius:0 8px 8px 0;font-size:.86rem;color:var(--muted);margin-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="tag">Customer Value Management</span>
+    <h1>Telecom Customer Churn Dashboard</h1>
+    <p class="sub">Who is leaving, why they leave, and which customers to save &mdash; based on 7,043 telecom customers.</p>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi"><div class="v" id="k-total">&mdash;</div><div class="l">Customers analysed</div></div>
+    <div class="kpi red"><div class="v" id="k-churn">&mdash;</div><div class="l">Overall churn rate</div></div>
+    <div class="kpi red"><div class="v" id="k-rev">&mdash;</div><div class="l">Monthly revenue at risk</div></div>
+    <div class="kpi teal"><div class="v" id="k-auc">&mdash;</div><div class="l">Model ROC-AUC</div></div>
+  </div>
+
+  <section>
+    <h2>Where churn comes from</h2>
+    <p class="hint">Churn rate broken down by the factors that matter most.</p>
+    <div class="charts">
+      <div class="chart"><h3>By contract type</h3><div id="c-contract"></div></div>
+      <div class="chart"><h3>By tenure (months with company)</h3><div id="c-tenure"></div></div>
+      <div class="chart"><h3>By internet service</h3><div id="c-internet"></div></div>
+      <div class="chart"><h3>By tech support</h3><div id="c-support"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Explore the customer base</h2>
+    <p class="hint">Filter the 7,043 customers to see how churn changes for any segment.</p>
+    <div class="controls">
+      <div>
+        <label for="f-contract">Contract</label>
+        <select id="f-contract"><option value="-1">All</option><option value="0">Month-to-month</option>
+        <option value="1">One year</option><option value="2">Two year</option></select>
+      </div>
+      <div>
+        <label for="f-internet">Internet service</label>
+        <select id="f-internet"><option value="-1">All</option><option value="0">DSL</option>
+        <option value="1">Fiber optic</option><option value="2">No internet</option></select>
+      </div>
+      <div>
+        <label for="f-support">Tech support</label>
+        <select id="f-support"><option value="-1">All</option><option value="1">Yes</option><option value="0">No</option></select>
+      </div>
+      <div>
+        <label for="f-tenure">Max tenure: <span id="f-tenure-v">72</span> months</label>
+        <input type="range" id="f-tenure" min="1" max="72" value="72">
+      </div>
+    </div>
+    <div class="result">
+      <div><div class="big" id="r-count">&mdash;</div><div class="lbl">customers in segment</div></div>
+      <div><div class="big" id="r-rate" style="color:var(--red)">&mdash;</div><div class="lbl">churn rate</div></div>
+      <div><div class="big" id="r-avg">&mdash;</div><div class="lbl">avg. monthly charge</div></div>
+      <div><div class="big" id="r-rev" style="color:var(--red)">&mdash;</div><div class="lbl">monthly revenue at risk</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Churn risk calculator</h2>
+    <p class="hint">Enter a customer's details to estimate their probability of leaving. Uses the logistic-regression model trained in the notebook.</p>
+    <div class="controls">
+      <div><label for="i-tenure">Tenure (months)</label><input type="number" id="i-tenure" value="6" min="0" max="100"></div>
+      <div><label for="i-monthly">Monthly charge</label><input type="number" id="i-monthly" value="80" min="0" max="200" step="0.05"></div>
+      <div><label for="i-contract">Contract</label><select id="i-contract">
+        <option value="0">Month-to-month</option><option value="1">One year</option><option value="2">Two year</option></select></div>
+      <div><label for="i-internet">Internet service</label><select id="i-internet">
+        <option value="1">Fiber optic</option><option value="0">DSL</option><option value="2">No internet</option></select></div>
+      <div><label for="i-support">Tech support</label><select id="i-support"><option value="0">No</option><option value="1">Yes</option></select></div>
+      <div><label for="i-security">Online security</label><select id="i-security"><option value="0">No</option><option value="1">Yes</option></select></div>
+      <div><label for="i-payment">Payment method</label><select id="i-payment">
+        <option value="1">Electronic check</option><option value="0">Other</option></select></div>
+      <div><label for="i-paperless">Paperless billing</label><select id="i-paperless"><option value="1">Yes</option><option value="0">No</option></select></div>
+      <div><label for="i-senior">Senior citizen</label><select id="i-senior"><option value="0">No</option><option value="1">Yes</option></select></div>
+      <div><label for="i-partner">Has partner</label><select id="i-partner"><option value="0">No</option><option value="1">Yes</option></select></div>
+      <div><label for="i-dependents">Has dependents</label><select id="i-dependents"><option value="0">No</option><option value="1">Yes</option></select></div>
+    </div>
+    <div class="gauge"><div class="gauge-fill" id="g-fill" style="width:0%"></div></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px">
+      <div><span class="big" id="g-pct" style="font-size:1.9rem;font-weight:700">&mdash;</span>
+           <span class="risk-note">probability of churn</span></div>
+      <div id="g-label" class="risk-note"></div>
+    </div>
+    <p class="risk-note" id="g-advice" style="margin-top:10px"></p>
+  </section>
+
+  <section>
+    <h2>Score your own customer list</h2>
+    <p class="hint">Upload a CSV in the same format as the sample to score customers in bulk. Everything runs in your browser &mdash; no data is uploaded anywhere.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="ghost" id="btn-template">Download CSV template</button>
+      <input type="file" id="csv-file" accept=".csv" style="flex:1;min-width:220px">
+    </div>
+    <div id="csv-out"></div>
+    <div class="note"><b>Note:</b> this model was trained on the public IBM Telco dataset, so your CSV must use the
+      same columns as the template. It is a demonstration of the workflow, not a plug-and-play product for
+      arbitrary company data &mdash; a real deployment would be retrained on that company's own history.</div>
+  </section>
+
+  <section>
+    <h2>What the business should do</h2>
+    <ul class="insights">
+      <li><b>Convert month-to-month customers.</b> They churn at 43% versus 3% on two-year contracts &mdash; incentivising longer contracts is the single biggest lever.</li>
+      <li><b>Protect customers in their first year.</b> Churned customers averaged 18 months of tenure versus 38 for those who stayed.</li>
+      <li><b>Bundle tech support and online security</b>, especially for fiber-optic and higher-paying customers, who churn noticeably more.</li>
+      <li><b>Target retention spend.</b> Use the model to focus offers on flagged high-risk customers instead of discounting the whole base.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Built by <a href="https://github.com/jawadalvi16">MD Arif Jawad Alvi</a> &middot;
+    <a href="https://github.com/jawadalvi16/telecom-customer-churn">View the code &amp; analysis on GitHub</a><br>
+    Data: public IBM Telco Customer Churn dataset (7,043 customers).
+  </footer>
+</div>
+
+<script src="data.js"></script>
+<script>
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString();
+const money = n => "$" + Math.round(n).toLocaleString();
+// row indices: 0 tenure, 1 monthly, 2 contract, 3 internet, 4 techSupport, 5 churn
+const T=0, M=1, C=2, I=3, S=4, CH=5;
+
+function colorFor(pct){ return pct>=35 ? "var(--red)" : pct>=18 ? "var(--amber)" : "var(--teal)"; }
+
+function drawBars(el, items){
+  el.innerHTML = items.map(it => `
+    <div class="bar-row">
+      <span class="nm">${it.name}</span>
+      <span class="bar-track"><span class="bar-fill" style="width:${Math.min(it.pct,100)}%;background:${colorFor(it.pct)}"></span></span>
+      <span class="pv">${it.pct.toFixed(0)}%</span>
+    </div>`).join("");
+}
+
+function rateOf(rows){ return rows.length ? rows.filter(r=>r[CH]===1).length/rows.length*100 : 0; }
+function group(idx, labels){
+  return labels.map((name,val)=>{
+    const sub = ROWS.filter(r=>r[idx]===val);
+    return {name, pct: rateOf(sub)};
+  });
+}
+
+// ---------- KPIs ----------
+$("k-total").textContent = fmt(SUMMARY.total);
+$("k-churn").textContent = SUMMARY.churnRate + "%";
+$("k-rev").textContent   = money(SUMMARY.monthlyRevenueAtRisk);
+$("k-auc").textContent   = MODEL.auc.toFixed(2);
+
+// ---------- overview charts ----------
+drawBars($("c-contract"), group(C, ["Month-to-month","One year","Two year"]));
+drawBars($("c-internet"), group(I, ["DSL","Fiber optic","No internet"]));
+drawBars($("c-support"),  group(S, ["No support","Has support"]));
+
+const bands = [[0,6,"0-6"],[7,12,"7-12"],[13,24,"13-24"],[25,48,"25-48"],[49,72,"49-72"]];
+drawBars($("c-tenure"), bands.map(([lo,hi,name])=>{
+  const sub = ROWS.filter(r=>r[T]>=lo && r[T]<=hi);
+  return {name: name+" mo", pct: rateOf(sub)};
+}));
+
+// ---------- explorer ----------
+function updateExplorer(){
+  const c=+$("f-contract").value, i=+$("f-internet").value,
+        s=+$("f-support").value, maxT=+$("f-tenure").value;
+  $("f-tenure-v").textContent = maxT;
+  const sub = ROWS.filter(r =>
+      (c<0 || r[C]===c) && (i<0 || r[I]===i) && (s<0 || r[S]===s) && r[T]<=maxT);
+  const rate = rateOf(sub);
+  const avg  = sub.length ? sub.reduce((a,r)=>a+r[M],0)/sub.length : 0;
+  const risk = sub.filter(r=>r[CH]===1).reduce((a,r)=>a+r[M],0);
+  $("r-count").textContent = fmt(sub.length);
+  $("r-rate").textContent  = rate.toFixed(1) + "%";
+  $("r-avg").textContent   = "$" + avg.toFixed(2);
+  $("r-rev").textContent   = money(risk);
+}
+["f-contract","f-internet","f-support","f-tenure"].forEach(id =>
+  $(id).addEventListener("input", updateExplorer));
+updateExplorer();
+
+// ---------- model scoring ----------
+function buildFeatures(o){
+  // must match MODEL.features order exactly
+  return [
+    o.tenure, o.monthly, o.senior, o.partner, o.dependents, o.paperless,
+    o.contract===1?1:0, o.contract===2?1:0,
+    o.internet===1?1:0, o.internet===2?1:0,
+    o.support, o.security, o.payment
+  ];
+}
+function predict(o){
+  const x = buildFeatures(o);
+  let z = MODEL.intercept;
+  for(let k=0;k<x.length;k++) z += MODEL.coef[k]*((x[k]-MODEL.mean[k])/MODEL.scale[k]);
+  return 1/(1+Math.exp(-z));
+}
+function readForm(){
+  return {
+    tenure:+$("i-tenure").value||0, monthly:+$("i-monthly").value||0,
+    contract:+$("i-contract").value, internet:+$("i-internet").value,
+    support:+$("i-support").value, security:+$("i-security").value,
+    payment:+$("i-payment").value, paperless:+$("i-paperless").value,
+    senior:+$("i-senior").value, partner:+$("i-partner").value,
+    dependents:+$("i-dependents").value
+  };
+}
+function updateCalc(){
+  const p = predict(readForm())*100;
+  $("g-fill").style.width = p.toFixed(1)+"%";
+  $("g-fill").style.background = colorFor(p);
+  $("g-pct").textContent = p.toFixed(1)+"%";
+  const hi = p>=50, md = p>=25;
+  $("g-label").innerHTML = `<span class="pill ${hi?'hi':md?'md':'lo'}">${hi?'HIGH RISK':md?'MEDIUM RISK':'LOW RISK'}</span>`;
+  $("g-advice").textContent = hi
+    ? "Priority for retention: offer a contract upgrade with a discount, and bundle tech support."
+    : md ? "Worth monitoring. A loyalty offer or service add-on could secure this customer."
+         : "Stable customer. No retention spend needed; focus budget on higher-risk segments.";
+}
+document.querySelectorAll("#i-tenure,#i-monthly,#i-contract,#i-internet,#i-support,#i-security,#i-payment,#i-paperless,#i-senior,#i-partner,#i-dependents")
+  .forEach(el => el.addEventListener("input", updateCalc));
+updateCalc();
+
+// ---------- CSV template + batch scoring ----------
+const HEADERS = ["customerID","tenure","MonthlyCharges","Contract","InternetService",
+                 "TechSupport","OnlineSecurity","PaymentMethod","PaperlessBilling",
+                 "SeniorCitizen","Partner","Dependents"];
+$("btn-template").addEventListener("click", () => {
+  const sample = [
+    HEADERS.join(","),
+    "CUST-001,3,89.90,Month-to-month,Fiber optic,No,No,Electronic check,Yes,0,No,No",
+    "CUST-002,45,55.20,Two year,DSL,Yes,Yes,Mailed check,No,0,Yes,Yes"
+  ].join("\n");
+  const url = URL.createObjectURL(new Blob([sample],{type:"text/csv"}));
+  const a = document.createElement("a");
+  a.href = url; a.download = "churn_template.csv"; a.click();
+  URL.revokeObjectURL(url);
+});
+
+function parseCSV(text){
+  const lines = text.trim().split(/\r?\n/);
+  const head = lines[0].split(",").map(h=>h.trim());
+  return lines.slice(1).filter(l=>l.trim()).map(line=>{
+    const cells = line.split(",").map(c=>c.trim());
+    const o = {}; head.forEach((h,i)=> o[h]=cells[i]);
+    return o;
+  });
+}
+$("csv-file").addEventListener("change", ev => {
+  const file = ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    let rows;
+    try { rows = parseCSV(e.target.result); }
+    catch(err){ $("csv-out").innerHTML = `<p class="risk-note">Could not read that file.</p>`; return; }
+    if(!rows.length){ $("csv-out").innerHTML = `<p class="risk-note">No rows found.</p>`; return; }
+    const scored = rows.map(r => {
+      const o = {
+        tenure:+r.tenure||0, monthly:+r.MonthlyCharges||0,
+        contract: r.Contract==="Two year"?2 : r.Contract==="One year"?1 : 0,
+        internet: r.InternetService==="Fiber optic"?1 : r.InternetService==="No"?2 : 0,
+        support: r.TechSupport==="Yes"?1:0, security: r.OnlineSecurity==="Yes"?1:0,
+        payment: r.PaymentMethod==="Electronic check"?1:0,
+        paperless: r.PaperlessBilling==="Yes"?1:0,
+        senior:+r.SeniorCitizen||0,
+        partner: r.Partner==="Yes"?1:0, dependents: r.Dependents==="Yes"?1:0
+      };
+      return { id: r.customerID || "(no id)", monthly:o.monthly, risk: predict(o)*100 };
+    }).sort((a,b)=>b.risk-a.risk);
+
+    const high = scored.filter(s=>s.risk>=50);
+    const atRisk = high.reduce((a,s)=>a+s.monthly,0);
+    $("csv-out").innerHTML = `
+      <div class="result" style="margin-top:16px">
+        <div><div class="big">${fmt(scored.length)}</div><div class="lbl">customers scored</div></div>
+        <div><div class="big" style="color:var(--red)">${fmt(high.length)}</div><div class="lbl">high risk (&ge;50%)</div></div>
+        <div><div class="big" style="color:var(--red)">${money(atRisk)}</div><div class="lbl">monthly revenue at risk</div></div>
+      </div>
+      <div class="scroll"><table>
+        <thead><tr><th>Customer</th><th class="num">Monthly</th><th class="num">Churn risk</th><th>Band</th></tr></thead>
+        <tbody>${scored.slice(0,15).map(s=>`
+          <tr><td>${s.id}</td><td class="num">$${s.monthly.toFixed(2)}</td>
+          <td class="num">${s.risk.toFixed(1)}%</td>
+          <td><span class="pill ${s.risk>=50?'hi':s.risk>=25?'md':'lo'}">${s.risk>=50?'High':s.risk>=25?'Medium':'Low'}</span></td></tr>`).join("")}
+        </tbody></table></div>
+      ${scored.length>15?`<p class="risk-note">Showing the 15 highest-risk of ${fmt(scored.length)} customers.</p>`:""}`;
+  };
+  reader.readAsText(file);
+});
+</script>
+</body>
+</html>
