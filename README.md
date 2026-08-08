@@ -11,6 +11,18 @@ For a telecom operator, every churned customer is lost recurring revenue — and
 
 ---
 
+## 🎯 What problem does this solve?
+Telecom operators usually discover that a customer has left **after** it happens — too late to keep them. This project flips that around: it identifies **who is likely to leave and why**, so a retention team can act *before* the customer is gone. Since keeping an existing customer is far cheaper than winning a new one, catching churn early directly protects revenue.
+
+**Who would use it, and how:**
+- **Managers** use the analysis to see *where* churn comes from and set policy (e.g. move customers onto longer contracts).
+- **Retention analysts** use the risk calculator to check an individual customer and get a suggested action.
+- **The team** uses bulk scoring to rank the whole customer base and focus retention spend on the highest-risk customers, instead of discounting everyone.
+
+*(This is the day-to-day work of a telecom's Customer Value Management team.)*
+
+---
+
 ## 🖥️ Interactive dashboard
 A self-contained web dashboard (no server needed) built so a **non-technical business user** can explore the findings:
 
