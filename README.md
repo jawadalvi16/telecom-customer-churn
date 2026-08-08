@@ -73,6 +73,11 @@ The logistic model reliably separates likely-leavers from likely-stayers (ROC-AU
 
 ![Top drivers of churn](images/06_feature_importance.png)
 
+**How reliable is this?** A single split can be lucky, so the model was also checked three ways:
+- **Cross-validation (5-fold):** ROC-AUC **0.845 ± 0.011** — stable across splits, not a fluke.
+- **Beats the naive baseline:** predicting "everyone stays" scores 73.5% accuracy (since only ~26% churn), so **ROC-AUC is a more honest headline than accuracy**.
+- **Churn recall ≈ 57%** at the default threshold. For a real retention campaign the threshold would be lowered to catch more at-risk customers, trading some precision for higher recall.
+
 ---
 
 ## 💡 Business recommendations
